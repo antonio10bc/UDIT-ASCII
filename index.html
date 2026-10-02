@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ASCII Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wdth,wght@75..112.5,300..700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --desk: #CDD3CA;
+    --paper: #F2F5EF;
+    --bar: #E1EAD8;
+    --ink: #1F2B38;
+    --faint: #66737F;
+    --rule: #A9B3A6;
+    --mono: "Martian Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --line: 1.5rem;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --desk: #0D1114; --paper: #192026; --bar: #1E262D;
+      --ink: #DCE3E8; --faint: #8592A0; --rule: #39444D;
+    }
+  }
+  :root[data-theme="dark"] {
+    --desk: #0D1114; --paper: #192026; --bar: #1E262D;
+    --ink: #DCE3E8; --faint: #8592A0; --rule: #39444D;
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0;
+    background: var(--desk);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-variation-settings: "wdth" 87.5;
+    font-weight: 400;
+    font-size: 0.875rem;
+    line-height: var(--line);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* continuous-form paper with tractor-feed holes */
+  .sheet {
+    --strip: 2.25rem;
+    position: relative;
+    max-width: 72rem;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding: calc(var(--line) * 3) calc(var(--strip) + clamp(1rem, 4vw, 3.5rem)) calc(var(--line) * 4);
+    background:
+      repeating-linear-gradient(to bottom, var(--paper) 0 calc(var(--line) * 3), var(--bar) calc(var(--line) * 3) calc(var(--line) * 6));
+  }
+  .sheet::before, .sheet::after {
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0;
+    width: var(--strip);
+    background:
+      radial-gradient(circle at 50% 50%, var(--desk) 0 0.36rem, transparent 0.4rem) 0 0 / 100% var(--line) repeat-y,
+      var(--paper);
+    pointer-events: none;
+  }
+  .sheet::before { left: 0; border-right: 1px dashed var(--rule); }
+  .sheet::after { right: 0; border-left: 1px dashed var(--rule); }
+
+  header { margin-bottom: calc(var(--line) * 3); }
+  .banner {
+    margin: 0 0 var(--line);
+    font-family: var(--mono);
+    font-size: clamp(7px, calc((100vw - 6rem) / 30), 1.6rem);
+    line-height: 1.05;
+    font-weight: 700;
+    font-variation-settings: "wdth" 112.5;
+    letter-spacing: 0;
+    overflow: hidden;
+    animation: print 1.1s steps(11) both;
+  }
+  .lede {
+    max-width: 44ch;
+    margin: 0;
+    color: var(--faint);
+  }
+
+  ul.grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+    gap: calc(var(--line) * 2) clamp(1.25rem, 3vw, 2.5rem);
+  }
+  .game {
+    display: grid;
+    gap: 0.25rem;
+    color: inherit;
+    text-decoration: none;
+    outline: none;
+  }
+  .cover {
+    margin: 0 0 0.5rem;
+    display: grid;
+    place-content: center;
+    min-height: 16.5rem;
+    padding: 1.25rem 0.75rem;
+    font-family: var(--mono);
+    font-variation-settings: "wdth" 75;
+    font-size: 0.95rem;
+    line-height: 1.3;
+    background: var(--paper);
+    border: 1px dashed var(--rule);
+    overflow: hidden;
+    transition: background-color .18s ease, color .18s ease, border-color .18s ease;
+    animation: print .9s steps(9) both;
+    animation-delay: calc(var(--i) * 130ms + 700ms);
+  }
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+  }
+  .title {
+    font-weight: 650;
+    font-variation-settings: "wdth" 100;
+    font-size: 1rem;
+  }
+  .who { color: var(--faint); white-space: nowrap; }
+  .desc { max-width: 38ch; }
+  .host {
+    color: var(--faint);
+    font-size: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .game:hover .cover,
+  .game:focus-visible .cover {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .game:hover .title,
+  .game:focus-visible .title { text-decoration: underline; text-underline-offset: 0.25em; }
+  .game:focus-visible .cover { outline: 2px solid var(--ink); outline-offset: 4px; }
+
+  footer {
+    margin-top: calc(var(--line) * 4);
+    color: var(--faint);
+    font-size: 0.75rem;
+  }
+
+  @keyframes print {
+    from { clip-path: inset(0 0 100% 0); }
+    to   { clip-path: inset(0 0 0 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .banner, .cover { animation: none; }
+    .cover { transition: none; }
+  }
+  @media (max-width: 30rem) {
+    .sheet { --strip: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<main class="sheet">
+  <header>
+    <pre class="banner" aria-label="ASCII Arcade"> AAA    SSSS   CCCC  IIIII  IIIII
+A   A  S      C        I      I  
+AAAAA   SSS   C        I      I  
+A   A      S  C        I      I  
+A   A  SSSS    CCCC  IIIII  IIIII
+
+ AAA   RRRR    CCCC   AAA   DDDD   EEEEE
+A   A  R   R  C      A   A  D   D  E    
+AAAAA  RRRR   C      AAAAA  D   D  EEEE 
+A   A  R  R   C      A   A  D   D  E    
+A   A  R   R   CCCC  A   A  DDDD   EEEEE</pre>
+    <p class="lede">8 prototipos jugables hechos solo con caracteres. Toca una portada para jugar.</p>
+  </header>
+
+  <ul class="grid">
+    <li style="--i:0">
+      <a class="game" href="https://rhythmascii.vercel.app/" target="_blank" rel="noopener">
+        <pre class="cover" aria-hidden="true">    O                     
+   /|\__/                 
+    |      .  o  -  -  -  
+   / \                    
+ ____&lt;|&gt;_________________ 
+                          
+  rango: S                
+                          </pre>
+        <span class="meta">
+          <span class="title">ASCII Baseball Beats</span>
+          <span class="who">de Luis</span>
+        </span>
+        <span class="desc">Batea al ritmo justo cuando la bola cruza el home plate.</span>
+        <span class="host">rhythmascii.vercel.app</span>
+      </a>
+    </li>
+    <li style="--i:1">
+      <a class="game" href="https://polis-vs-cacos-asci.vercel.app/" target="_blank" rel="noopener">
+        <pre class="cover" aria-hidden="true"> +---+---+---+---+---+    
+ | P |   |   | c |   |    
+ +---+---+---+---+---+    
+ |   | P | c |   |###|    
+ +---+---+---+---+---+    
+ |   |   |   | c |###|    
+ +---+---+---+---+---+    
+  turno: polis            </pre>
+        <span class="meta">
+          <span class="title">Polis vs Cacos</span>
+          <span class="who">de Sergio</span>
+        </span>
+        <span class="desc">Duelo por turnos: atrapa a los cacos y enciérralos en la zona.</span>
+        <span class="host">polis-vs-cacos-asci.vercel.app</span>
+      </a>
+    </li>
+    <li style="--i:2">
+      <a class="game" href="https://luzsombra.vercel.app/" target="_blank" rel="noopener">
+        <pre class="cover" aria-hidden="true">   \ | /                  
+  -- O --                 
+   / | \                  
+         `.     o         
+           `.  /|\        
+             `./ \::::::: 
+ ________________________ 
+                          </pre>
+        <span class="meta">
+          <span class="title">Sombra</span>
+          <span class="who">de Irene</span>
+        </span>
+        <span class="desc">Mantén, arrastra y coloca la sombra en su sitio.</span>
+        <span class="host">luzsombra.vercel.app</span>
+      </a>
+    </li>
+    <li style="--i:3">
+      <a class="game" href="https://rotator-30.vercel.app/" target="_blank" rel="noopener">
+        <pre class="cover" aria-hidden="true">       .-~~~~-.           
+     /  /\_/\  \          
+    |  ( o.o )  |  &lt;--    
+    |   &gt; ^ &lt;   |         
+     \  `---&#x27;  /          
+       &#x27;-....-&#x27;           
+                          
+  gato cyber  4/9         </pre>
+        <span class="meta">
+          <span class="title">ASCII Rotator</span>
+          <span class="who">de Lucas</span>
+        </span>
+        <span class="desc">Para el giro en el momento justo y reconstruye la imagen.</span>
+        <span class="host">rotator-30.vercel.app</span>
+      </a>
+    </li>
+    <li style="--i:4">
+      <a class="game" href="https://ratavsgato.vercel.app/" target="_blank" rel="noopener">
+        <pre class="cover" aria-hidden="true">                          
+    /\_/\                 
+   ( o o )                
+   =( Y )=    .  .  ~( 3:&gt;
+    )   (                 
+   (_)-(_)                
+                          
+                          </pre>
+        <span class="meta">
+          <span class="title">Rat vs Cat</span>
+          <span class="who">de Jesús</span>
+        </span>
+        <span class="desc">Duelo móvil: el gato persigue, el ratón esquiva.</span>
+        <span class="host">ratavsgato.vercel.app</span>
+      </a>
+    </li>
+    <li style="--i:5">
+      <a class="game" href="https://danger-fising.vercel.app/" target="_blank" rel="noopener">
+        <pre class="cover" aria-hidden="true">         /|               
+        / |               
+       /__|___            
+  ~~~~~\_____/~~~~~~~~~~  
+           |     &gt;&lt;&gt;      
+    &lt;&gt;&lt;    |              
+           J              
+   &gt;&lt;(((((((((&#x27;&gt;          </pre>
+        <span class="meta">
+          <span class="title">Danger Fishing</span>
+          <span class="who">de Jorge</span>
+        </span>
+        <span class="desc">Pesca todo lo que puedas hasta atraer al Rey de los Mares.</span>
+        <span class="host">danger-fising.vercel.app</span>
+      </a>
+    </li>
+    <li style="--i:6">
+      <a class="game" href="https://virusslingshot-n1ty.vercel.app/" target="_blank" rel="noopener">
+        <pre class="cover" aria-hidden="true">               \ | /      
+   \   /     --(x_x)--    
+    \ /   .     / | \     
+     Y  &#x27;                 
+     | &#x27;                  
+     |                    
+    ===                   
+                          </pre>
+        <span class="meta">
+          <span class="title">Virus Infiltration</span>
+          <span class="who">de Samuel</span>
+        </span>
+        <span class="desc">Tensa el tirachinas y cuela el virus en el sistema.</span>
+        <span class="host">virusslingshot-n1ty.vercel.app</span>
+      </a>
+    </li>
+    <li style="--i:7">
+      <a class="game" href="https://fastwood-red.vercel.app/" target="_blank" rel="noopener">
+        <pre class="cover" aria-hidden="true">     _____                
+    |     \    .------.   
+    |_____/    |######|   
+       ||      |######|   
+       ||  ~&gt;  |###/  |   
+       ||      |##/   |   
+       ||      &#x27;------&#x27;   
+  ^^^^^^^^^^^^^^^^^ 10.0s </pre>
+        <span class="meta">
+          <span class="title">Corta Madera</span>
+          <span class="who">de Iván</span>
+        </span>
+        <span class="desc">Recorta el bloque y copia la figura antes de la trituradora.</span>
+        <span class="host">fastwood-red.vercel.app</span>
+      </a>
+    </li>
+  </ul>
+
+  <footer>Fin del listado. 8 juegos.</footer>
+</main>
+</body>
+</html>
